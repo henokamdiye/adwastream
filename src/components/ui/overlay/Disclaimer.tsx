@@ -16,39 +16,40 @@ import { cn } from "@/utils/helpers";
 
 const COUNTDOWN_DURATION = 10;
 const MODAL_SIZE = "3xl";
+
 const DISCLAIMER_CONTENT = {
   title: "Disclaimer",
   paragraphs: [
     {
       id: "welcome",
       content:
-        "Welcome to Cinextma - a free and open-source movie streaming website. Please read this disclaimer carefully before using this website.",
-    },
-    {
-      id: "purpose",
-      content: "Cinextma is developed solely for",
-      emphasis: "educational and learning purposes.",
-      continuation:
-        "This website is an open-source project intended to demonstrate web development skills and is not meant to promote or encourage digital piracy in any form.",
+        "Welcome to AdwaStream – your premium Habesha cinema streaming destination. Please read this disclaimer carefully before using this website.",
     },
     {
       id: "content-source",
       content:
-        "All content displayed on Cinextma (including but not limited to movies, images, posters, and related information) is sourced from",
-      emphasis: "third-party providers through APIs or embedding.",
+        "All media content displayed on AdwaStream (including movies, TV shows, images, posters, and related information) is sourced from",
+      emphasis: "third-party providers through embedding or APIs.",
       continuation:
-        "I do not host, store, or distribute any media files on my servers. The website merely aggregates content that is already available on the internet.",
+        "We do not host, store, or distribute any media files on our servers. AdwaStream only aggregates content that is already publicly available on the internet.",
     },
     {
       id: "responsibility",
       content:
-        "By using Cinextma, you acknowledge that I bears no responsibility for user actions, content accuracy, or any direct or indirect damages arising from the use of this website. Users are solely responsible for their actions while using this service. I respect intellectual property rights and will respond to legitimate requests from copyright holders for content removal.",
+        "By using AdwaStream, you acknowledge that the platform is provided as-is. You accept that AdwaStream bears no responsibility for any content accuracy, interruptions, or user actions. Users are solely responsible for their behavior while using this service.",
     },
     {
       id: "usage",
       content:
-        "This website should only be used for learning purposes. Any illegal activities, including but not limited to unauthorized downloading, redistribution of content, or commercial use, are strictly prohibited. By using Cinextma, you agree to these terms and acknowledge that",
-      emphasis: "you use the service at your own risk.",
+        "All content is provided for personal entertainment purposes only. By continuing to use AdwaStream, you agree",
+      emphasis: "to use the service at your own risk",
+      continuation:
+        "and acknowledge that AdwaStream is not liable for any direct or indirect damages resulting from the use of embedded media streams.",
+    },
+    {
+      id: "ads",
+      content:
+        "This website is monetized through advertisements. By using the platform, you consent to the display of ads from our approved partners.",
     },
   ],
 };
@@ -61,7 +62,7 @@ interface DisclaimerParagraphProps {
 
 const DisclaimerParagraph: React.FC<DisclaimerParagraphProps> = memo(
   ({ content, emphasis, continuation }) => (
-    <p>
+    <p className="text-gray-800 text-base leading-relaxed">
       {content}
       {emphasis && (
         <>
@@ -71,7 +72,7 @@ const DisclaimerParagraph: React.FC<DisclaimerParagraphProps> = memo(
       )}
       {continuation && ` ${continuation}`}
     </p>
-  ),
+  )
 );
 
 DisclaimerParagraph.displayName = "DisclaimerParagraph";
@@ -89,14 +90,18 @@ const Disclaimer: React.FC = () => {
 
   const [isOpen, { close }] = useDisclosure(shouldShowModal);
 
-  useInterval(() => setSecondsRemaining((prev) => Math.max(0, prev - 1)), 1000, {
-    autoInvoke: shouldShowModal && secondsRemaining > 0,
-  });
+  useInterval(
+    () => setSecondsRemaining((prev) => Math.max(0, prev - 1)),
+    1000,
+    {
+      autoInvoke: shouldShowModal && secondsRemaining > 0,
+    }
+  );
 
   const isButtonDisabled = secondsRemaining > 0;
   const buttonText = useMemo(
     () => `Agree${isButtonDisabled ? ` (${secondsRemaining})` : ""}`,
-    [isButtonDisabled, secondsRemaining],
+    [isButtonDisabled, secondsRemaining]
   );
 
   const handleAgree = useCallback(() => {
@@ -119,7 +124,7 @@ const Disclaimer: React.FC = () => {
       scrollBehavior="inside"
     >
       <ModalContent>
-        <ModalHeader className="flex flex-col gap-1 text-center text-3xl uppercase">
+        <ModalHeader className="flex flex-col gap-1 text-center text-3xl font-bold uppercase">
           {DISCLAIMER_CONTENT.title}
         </ModalHeader>
 

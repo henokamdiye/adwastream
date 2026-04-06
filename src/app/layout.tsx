@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { siteConfig } from "@/config/site";
 
-// 🔥 Luxury Font System
+/* 🔥 Luxury Font System */
 import {
   DMSans,
   Syne,
@@ -25,33 +25,28 @@ import { Analytics } from "@vercel/analytics/next";
 import { cn } from "@/utils/helpers";
 import { IS_PRODUCTION, SpacingClasses } from "@/utils/constants";
 
-import dynamic from "next/dynamic";
+/* ✅ Client Components */
+import ClientOnlyDisclaimer from "@/components/client/ClientOnlyDisclaimer";
+import AdStickyBottomClient from "@/components/client/AdStickyBottomClient";
+
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { Suspense } from "react";
 
-// Safe dynamic import for legal compliance
-const Disclaimer = dynamic(
-  () => import("@/components/ui/overlay/Disclaimer"),
-  { ssr: false }
-);
-
-// Client wrapper for monetization
-import AdStickyBottomClient from "@/components/client/AdStickyBottomClient";
-
-/* ───────────────── Metadata (SEO & Branding) ───────────────── */
+/* ───────────────── Metadata ───────────────── */
 
 export const metadata: Metadata = {
   title: {
     default: "AdwaStream | Premium Habesha Cinema",
     template: `%s | ${siteConfig.name}`,
   },
-  description: "The ultimate luxury streaming destination for global blockbusters and exclusive Ethiopian cinema. Experience the spirit of Adwa.",
+  description:
+    "The ultimate luxury streaming destination for global blockbusters and exclusive Ethiopian cinema.",
   metadataBase: new URL("https://adwastream.xyz"),
   applicationName: "AdwaStream",
   manifest: "/manifest.json",
 
   icons: {
-    icon: "/icon.png", // Your new Gold Adwa 'A' icon
+    icon: "/icon.png",
     apple: "/icon.png",
   },
 
@@ -59,14 +54,15 @@ export const metadata: Metadata = {
     type: "website",
     siteName: "AdwaStream",
     title: "AdwaStream | Premium Habesha Cinema",
-    description: "Stream high-end movies and exclusive Habesha content in ultra-luxury UI.",
+    description:
+      "Stream high-end movies and exclusive Habesha content.",
     url: "https://adwastream.xyz",
     images: [
       {
-        url: "/og-image.jpg", // Make sure to place a banner in your /public folder!
+        url: "/og-image.jpg",
         width: 1200,
         height: 630,
-        alt: "AdwaStream Luxury Preview",
+        alt: "AdwaStream Preview",
       },
     ],
   },
@@ -82,10 +78,10 @@ export const metadata: Metadata = {
   },
 };
 
-/* ───────────────── Viewport (OLED Black Theme) ───────────────── */
+/* ───────────────── Viewport ───────────────── */
 
 export const viewport: Viewport = {
-  themeColor: "#080808", // Matches your Adwa OLED Black
+  themeColor: "#080808",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
@@ -96,21 +92,23 @@ export const viewport: Viewport = {
 
 export default function RootLayout({
   children,
-}: Readonly<{ children: React.ReactNode }>) {
+}: {
+  children: React.ReactNode;
+}) {
   return (
-    <html 
-      suppressHydrationWarning 
-      lang="en" 
-      data-scroll-behavior="smooth" // ✅ Fixes the Next.js Smooth Scroll Warning
+    <html
+      suppressHydrationWarning
+      lang="en"
+      data-scroll-behavior="smooth"
     >
       <body
         className={cn(
           "bg-[#080808] min-h-dvh antialiased select-none overflow-x-hidden",
 
-          /* 🎬 Primary UI Font (Outfit) */
+          /* Primary Font */
           Outfit.className,
 
-          /* 🎬 Luxury Font Variables for CSS reference */
+          /* Font Variables */
           Syne.variable,
           BebasNeue.variable,
           DMSans.variable,
@@ -122,12 +120,11 @@ export default function RootLayout({
           <NuqsAdapter>
             <Providers>
 
-              {/* Only show legal disclaimer in production */}
-              {IS_PRODUCTION && <Disclaimer />}
+              {/* ✅ Client-only Disclaimer */}
+              {IS_PRODUCTION && <ClientOnlyDisclaimer />}
 
               <TopNavbar />
 
-              {/* Main Sidebar Wrapper */}
               <Sidebar>
                 <main
                   className={cn(
@@ -141,14 +138,14 @@ export default function RootLayout({
 
               <BottomNavbar />
 
-              {/* Ad Integration Placeholder */}
+              {/* Ads */}
               <AdStickyBottomClient />
 
             </Providers>
           </NuqsAdapter>
         </Suspense>
 
-        {/* Performance Tracking (Cloudflare compatible) */}
+        {/* Performance */}
         <SpeedInsights />
         <Analytics />
 

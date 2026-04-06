@@ -1,11 +1,6 @@
 "use client";
 
-import dynamic from "next/dynamic";
-
-const AdStickyBottom = dynamic(
-  () => import("@/components/ui/ads/AdStickyBottom"),
-  { ssr: false }
-);
+import AdStickyBottom from "@/components/ui/ads/AdStickyBottom";
 
 export default function AdStickyBottomClient() {
   return <AdStickyBottom />;

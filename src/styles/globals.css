@@ -1,0 +1,166 @@
+@import "tailwindcss";
+@import "./lightbox.css";
+
+@plugin '../utils/hero.ts';
+@plugin "tailwindcss-motion";
+
+@source "../../node_modules/@heroui/theme/dist/**/*.{js,ts,jsx,tsx}";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme {
+  /* ── Font families ─────────────────────────────────────────── */
+  --font-bebas:  var(--font-bebas);
+  --font-syne:   var(--font-syne);
+  --font-dm:     var(--font-dm);
+
+  /* ── FIX: Added '--color-' prefix for Tailwind v4 utilities ── */
+  --color-gold-50:  #fffdf0;
+  --color-gold-100: #fff8dc;
+  --color-gold-200: #ffe87c;
+  --color-gold-300: #ffd700;
+  --color-gold-400: #f5c518;
+  --color-gold-500: #daa520;
+  --color-gold-600: #b8860b;
+  --color-gold-700: #8b6914;
+  --color-gold-800: #5c4000;
+  --color-gold-900: #2e2000;
+
+  /* ── Animations ────────────────────────────────────────────── */
+  --animate-shine:         shine 3s linear infinite;
+  --animate-gold-shine:    goldShine 2.5s linear infinite;
+  --animate-hero-fade:     heroFade 0.9s ease forwards;
+  --animate-hero-slide-up: heroSlideUp 0.7s cubic-bezier(0.22,1,0.36,1) forwards;
+  --animate-pulse-gold:    pulseGold 2s ease-in-out infinite;
+  --animate-fade-in-up:    fadeInUp 0.6s ease both;
+  --animate-shimmer:       shimmer 2s linear infinite;
+  --animate-slide-in-left: slideInLeft 0.6s ease both;
+
+  @keyframes shine {
+    0%   { background-position: 100%; }
+    100% { background-position: -100%; }
+  }
+  @keyframes goldShine {
+    0%   { background-position: 200% center; }
+    100% { background-position: -200% center; }
+  }
+  @keyframes heroFade {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+  @keyframes heroSlideUp {
+    from { opacity: 0; transform: translateY(36px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes pulseGold {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(255,215,0,0.4); }
+    50%       { box-shadow: 0 0 0 12px rgba(255,215,0,0); }
+  }
+  @keyframes slideInLeft {
+    from { opacity: 0; transform: translateX(-40px); }
+    to   { opacity: 1; transform: translateX(0); }
+  }
+  @keyframes shimmer {
+    0%   { background-position: -200% 0; }
+    100% { background-position:  200% 0; }
+  }
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+  @keyframes prerollCount {
+    from { stroke-dashoffset: 0; }
+    to   { stroke-dashoffset: 100; }
+  }
+}
+
+/* ── Base ──────────────────────────────────────────────────────── */
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentcolor);
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: var(--font-dm), 'DM Sans', system-ui, sans-serif;
+    background: #080808;
+    color: #f0f0f0;
+  }
+
+  h1, h2, h3 {
+    font-family: var(--font-syne), 'Syne', sans-serif;
+    letter-spacing: -0.02em;
+  }
+
+  h1 { @apply text-3xl font-bold md:text-4xl; }
+  h2 { @apply text-2xl font-bold md:text-3xl; }
+  h3 { @apply text-xl font-bold md:text-2xl; }
+  h4 { @apply text-lg font-semibold md:text-xl; }
+  h5 { @apply text-base font-medium md:text-lg; }
+  h6 { @apply text-sm font-normal md:text-base; }
+
+  iframe { @apply border-none; }
+}
+
+/* ── Embla carousel ────────────────────────────────────────────── */
+@utility embla             { @apply overflow-hidden; }
+@utility embla__container  { @apply flex cursor-grab active:cursor-grabbing; }
+@utility embla__slide      { @apply min-w-0 flex-[0_0_100%]; }
+
+/* ── Layout helpers ────────────────────────────────────────────── */
+@utility absolute-center {
+  @apply absolute! top-1/2! left-1/2! float-none! -translate-x-1/2! -translate-y-1/2!;
+}
+@utility movie-grid {
+  @apply grid size-full max-w-6xl grid-cols-2 justify-center gap-2 sm:grid-cols-3 md:gap-4
+         lg:grid-cols-[repeat(auto-fit,minmax(200px,50px))];
+}
+
+/* ── Glass effects ─────────────────────────────────────────────── */
+@utility glass-dark {
+  background: rgba(8,8,8,0.7);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255,255,255,0.06);
+}
+@utility glass-gold {
+  background: rgba(8,8,8,0.55);
+  backdrop-filter: blur(24px) saturate(200%);
+  -webkit-backdrop-filter: blur(24px) saturate(200%);
+  border: 1px solid rgba(255,215,0,0.22);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.45), inset 0 0 40px rgba(255,215,0,0.03);
+}
+
+/* ── Gold text ─────────────────────────────────────────────────── */
+@utility gold-text {
+  background: linear-gradient(135deg, #b8860b 0%, #daa520 20%, #ffd700 40%, #fff8a0 55%, #ffd700 70%, #daa520 85%, #b8860b 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+@utility gold-text-animated {
+  background: linear-gradient(90deg, #7a5c00,#c8960c,#ffd700,#fff8a0,#ffd700,#c8960c,#7a5c00);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: goldShine 2.5s linear infinite;
+}
+
+/* ── Gold glow border ──────────────────────────────────────────── */
+@utility gold-ring {
+  box-shadow: 0 0 0 1px rgba(255,215,0,0.35), 0 0 20px rgba(255,215,0,0.12);
+}
+
+/* ── Syne headings helper ──────────────────────────────────────── */
+@utility font-display {
+  font-family: var(--font-syne), 'Syne', sans-serif;
+}

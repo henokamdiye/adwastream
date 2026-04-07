@@ -2,21 +2,25 @@
 import { useState, useEffect } from "react";
 
 /**
- * AdStickyBottom — appears 4 seconds after page load, easily dismissable.
- * Non-blocking: it slides up gently from the bottom and has an obvious X.
+ * AdStickyBottom — Integrated with your Adsterra Direct Link
  */
 export default function AdStickyBottom() {
   const [visible, setVisible] = useState(false);
   const [dismissed, setDismissed] = useState(false);
 
+  // YOUR DIRECT LINK
+  const AD_LINK = "https://www.profitablecpmratenetwork.com/gd5iruty?key=6ed2d11b5284120bc0849bf320f9facf";
+
   useEffect(() => {
-    // Check session storage so it doesn't re-show on every page navigation
     if (sessionStorage.getItem("adStickyDismissed")) return;
+    // Show after 4 seconds for better user experience
     const t = setTimeout(() => setVisible(true), 4000);
     return () => clearTimeout(t);
   }, []);
 
-  const dismiss = () => {
+  const dismiss = (e: React.MouseEvent) => {
+    e.preventDefault(); // Prevents clicking the ad when clicking X
+    e.stopPropagation();
     setDismissed(true);
     sessionStorage.setItem("adStickyDismissed", "1");
   };
@@ -25,53 +29,67 @@ export default function AdStickyBottom() {
 
   return (
     <div
-      className="fixed inset-x-0 bottom-0 z-[999] flex justify-center pb-4 px-3"
-      style={{ animation: "slideUpAd 0.5s cubic-bezier(0.22,1,0.36,1) both" }}
+      className="fixed inset-x-0 bottom-0 z-[999] flex justify-center pb-6 px-4"
+      style={{ animation: "slideUpAd 0.6s cubic-bezier(0.22,1,0.36,1) both" }}
     >
       <div
-        className="relative flex w-full max-w-2xl items-center justify-between gap-4 overflow-hidden rounded-2xl px-5 py-3"
+        className="relative flex w-full max-w-2xl items-center justify-between gap-4 overflow-hidden rounded-2xl p-1"
         style={{
-          background: "rgba(12,12,12,0.92)",
-          backdropFilter: "blur(20px)",
-          border: "1px solid rgba(255,255,255,0.07)",
-          boxShadow: "0 -4px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,215,0,0.05) inset",
+          background: "rgba(10,10,10,0.85)",
+          backdropFilter: "blur(24px)",
+          border: "1px solid rgba(255,255,255,0.08)",
+          boxShadow: "0 20px 50px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,215,0,0.1) inset",
         }}
       >
-        {/* Gold accent top line */}
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-px"
-             style={{ background: "linear-gradient(90deg,transparent,rgba(255,215,0,0.3),transparent)" }} />
+        {/* The Clickable Ad Area */}
+        <a 
+          href={AD_LINK}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex flex-1 items-center gap-4 px-4 py-2 transition-all hover:bg-white/5 group"
+        >
+          {/* Gold accent top line */}
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-px"
+               style={{ background: "linear-gradient(90deg,transparent,rgba(255,215,0,0.4),transparent)" }} />
 
-        {/* Ad label + placeholder */}
-        <div className="flex flex-1 items-center gap-4">
-          <span className="shrink-0 rounded px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-widest text-white/30 border border-white/10">
-            Ad
+          <span className="shrink-0 rounded-md px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.2em] text-yellow-500 border border-yellow-500/20 bg-yellow-500/5">
+            Sponsored
           </span>
 
-          {/* ── Replace with real ad unit ── */}
-          <div className="flex flex-1 items-center gap-3">
-            <div className="h-9 w-9 shrink-0 rounded-lg bg-white/5" />
-            <div className="flex flex-col gap-1.5">
-              <div className="h-2 w-48 rounded-full bg-white/8" />
-              <div className="h-1.5 w-32 rounded-full bg-white/5" />
+          <div className="flex flex-1 items-center gap-4">
+            {/* Ad Icon (Matching your UI style) */}
+            <div className="h-10 w-10 shrink-0 rounded-xl bg-gradient-to-br from-yellow-500/20 to-transparent flex items-center justify-center border border-white/5">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="text-yellow-500">
+                    <path d="M5 3l14 9-14 9V3z" fill="currentColor" />
+                </svg>
+            </div>
+            
+            <div className="flex flex-col">
+              <span className="text-sm font-bold text-white group-hover:text-yellow-500 transition-colors">
+                Stream in Ultra HD 4K
+              </span>
+              <span className="text-[11px] text-white/50 font-medium">
+                No subscription required. Click to watch now.
+              </span>
             </div>
           </div>
-        </div>
+        </a>
 
-        {/* Dismiss — big, easy to tap */}
+        {/* Dismiss Button */}
         <button
           onClick={dismiss}
-          className="ml-2 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/8 text-white/50 transition hover:bg-white/15 hover:text-white active:scale-95"
+          className="mr-3 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/5 text-white/30 transition hover:bg-white/10 hover:text-white active:scale-90"
           aria-label="Close advertisement"
         >
-          <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor">
-            <path d="M1 1l8 8M9 1l-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+          <svg width="12" height="12" viewBox="0 0 10 10" fill="none" stroke="currentColor">
+            <path d="M1 1l8 8M9 1l-8 8" strokeWidth="1.5" strokeLinecap="round"/>
           </svg>
         </button>
       </div>
 
-      <style>{`
+      <style jsx>{`
         @keyframes slideUpAd {
-          from { transform: translateY(100%); opacity: 0; }
+          from { transform: translateY(120%); opacity: 0; }
           to   { transform: translateY(0);    opacity: 1; }
         }
       `}</style>

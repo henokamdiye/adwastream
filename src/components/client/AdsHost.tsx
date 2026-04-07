@@ -26,7 +26,8 @@ const AdController = dynamic(() => import("@/components/client/AdController"), {
   loading: () => null
 });
 
-export default function AdsHost(): JSX.Element {
+/* Use React.ReactElement instead of JSX.Element to avoid missing JSX namespace errors */
+export default function AdsHost(): React.ReactElement {
   return (
     <>
       {/* Top Banner: md+ */}

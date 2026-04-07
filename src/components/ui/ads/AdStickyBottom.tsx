@@ -2,30 +2,55 @@
 import { useState, useEffect } from "react";
 
 /**
- * AdStickyBottom — Integrated with your Adsterra Direct Link
+ * AdStickyBottom — Integrated with Adsterra iframe ad
  */
 export default function AdStickyBottom() {
   const [visible, setVisible] = useState(false);
   const [dismissed, setDismissed] = useState(false);
 
-  // YOUR DIRECT LINK
-  const AD_LINK = "https://www.profitablecpmratenetwork.com/gd5iruty?key=6ed2d11b5284120bc0849bf320f9facf";
-
   useEffect(() => {
     if (sessionStorage.getItem("adStickyDismissed")) return;
-    // Show after 4 seconds for better user experience
+
     const t = setTimeout(() => setVisible(true), 4000);
     return () => clearTimeout(t);
   }, []);
 
+  useEffect(() => {
+    if (!visible || dismissed) return;
+
+    // Inject Adsterra iframe ad script
+    const script = document.createElement("script");
+    script.src = "https://www.highperformanceformat.com/df67367368efb0d29cc8c894d57d7ef2/invoke.js";
+    script.async = true;
+
+    const inlineScript = document.createElement("script");
+    inlineScript.innerHTML = `
+      atOptions = {
+        'key' : 'df67367368efb0d29cc8c894d57d7ef2',
+        'format' : 'iframe',
+        'height' : 50,
+        'width' : 320,
+        'params' : {}
+      };
+    `;
+
+    document.getElementById("ad-container")?.appendChild(inlineScript);
+    document.getElementById("ad-container")?.appendChild(script);
+
+    return () => {
+      script.remove();
+      inlineScript.remove();
+    };
+  }, [visible, dismissed]);
+
   const dismiss = (e: React.MouseEvent) => {
-    e.preventDefault(); // Prevents clicking the ad when clicking X
+    e.preventDefault();
     e.stopPropagation();
     setDismissed(true);
     sessionStorage.setItem("adStickyDismissed", "1");
   };
 
-  if (dismissed || !visible) return null;
+  if (!visible || dismissed) return null;
 
   return (
     <div
@@ -41,39 +66,7 @@ export default function AdStickyBottom() {
           boxShadow: "0 20px 50px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,215,0,0.1) inset",
         }}
       >
-        {/* The Clickable Ad Area */}
-        <a 
-          href={AD_LINK}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex flex-1 items-center gap-4 px-4 py-2 transition-all hover:bg-white/5 group"
-        >
-          {/* Gold accent top line */}
-          <div className="pointer-events-none absolute inset-x-0 top-0 h-px"
-               style={{ background: "linear-gradient(90deg,transparent,rgba(255,215,0,0.4),transparent)" }} />
-
-          <span className="shrink-0 rounded-md px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.2em] text-yellow-500 border border-yellow-500/20 bg-yellow-500/5">
-            Sponsored
-          </span>
-
-          <div className="flex flex-1 items-center gap-4">
-            {/* Ad Icon (Matching your UI style) */}
-            <div className="h-10 w-10 shrink-0 rounded-xl bg-gradient-to-br from-yellow-500/20 to-transparent flex items-center justify-center border border-white/5">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="text-yellow-500">
-                    <path d="M5 3l14 9-14 9V3z" fill="currentColor" />
-                </svg>
-            </div>
-            
-            <div className="flex flex-col">
-              <span className="text-sm font-bold text-white group-hover:text-yellow-500 transition-colors">
-                Stream in Ultra HD 4K
-              </span>
-              <span className="text-[11px] text-white/50 font-medium">
-                No subscription required. Click to watch now.
-              </span>
-            </div>
-          </div>
-        </a>
+        <div id="ad-container" className="flex justify-center w-full"></div>
 
         {/* Dismiss Button */}
         <button

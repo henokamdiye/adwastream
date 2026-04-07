@@ -16,7 +16,6 @@ export default function AdPreRoll({ onDone, skipAfter = 5 }: AdPreRollProps) {
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const BRAND_GOLD = "#F5C300";
-  // Your Direct Link as a fallback
   const DIRECT_LINK = "https://www.profitablecpmratenetwork.com/gd5iruty?key=6ed2d11b5284120bc0849bf320f9facf";
 
   useEffect(() => {
@@ -44,23 +43,42 @@ export default function AdPreRoll({ onDone, skipAfter = 5 }: AdPreRollProps) {
     window.open(DIRECT_LINK, "_blank");
   };
 
+  // Inject Adsterra iframe script dynamically
+  useEffect(() => {
+    const container = document.getElementById("adsterra-preroll-container");
+    if (!container) return;
+
+    const inlineScript = document.createElement("script");
+    inlineScript.innerHTML = `
+      atOptions = {
+        'key' : 'df67367368efb0d29cc8c894d57d7ef2',
+        'format' : 'iframe',
+        'height' : 50,
+        'width' : 320,
+        'params' : {}
+      };
+    `;
+    container.appendChild(inlineScript);
+
+    const script = document.createElement("script");
+    script.src = "https://www.highperformanceformat.com/df67367368efb0d29cc8c894d57d7ef2/invoke.js";
+    script.async = true;
+    container.appendChild(script);
+
+    return () => {
+      inlineScript.remove();
+      script.remove();
+    };
+  }, []);
+
   const circumference = 2 * Math.PI * 16;
   const progress = canSkip ? 0 : circumference * (1 - (skipAfter - countdown) / skipAfter);
 
   return (
     <>
-      {/* STRATEGY FIX: Changed to 'beforeInteractive' or 'lazyOnload'. 
-          If 'afterInteractive' didn't work, 'lazyOnload' is often safer for Adsterra 
-      */}
-      <Script
-        id="adsterra-preroll"
-        src="https://pl29085033.profitablecpmratenetwork.com/c5/14/99/c514994a5300c2501ab0e78ea0d66080.js"
-        strategy="lazyOnload" 
-      />
-
       <div className="absolute inset-0 z-[100] flex items-end justify-end bg-black/40 backdrop-blur-sm pb-16 pr-8 transition-all duration-500">
         
-        {/* INVISIBLE CLICK LAYER - Forces a Direct Link open if they click anywhere */}
+        {/* Invisible click layer */}
         <div 
           onClick={handleBackgroundClick}
           className="absolute inset-0 z-10 cursor-pointer"
@@ -80,9 +98,9 @@ export default function AdPreRoll({ onDone, skipAfter = 5 }: AdPreRollProps) {
           {canSkip ? (
             <button
               onClick={(e) => {
-                e.stopPropagation(); // Stop background click
-                handleBackgroundClick(); // Open ad on skip
-                onDone(); // Then show movie
+                e.stopPropagation();
+                handleBackgroundClick();
+                onDone();
               }}
               className="group flex items-center gap-3 rounded-full px-8 py-3.5 text-sm font-black transition-all hover:scale-105 active:scale-95 shadow-2xl"
               style={{
@@ -123,12 +141,9 @@ export default function AdPreRoll({ onDone, skipAfter = 5 }: AdPreRollProps) {
           )}
         </div>
 
-        <style jsx>{`
-          @keyframes shimmer {
-            0% { background-position: -200% 0; }
-            100% { background-position: 200% 0; }
-          }
-        `}</style>
+        {/* Container where Adsterra iframe will render */}
+        <div id="adsterra-preroll-container" className="absolute bottom-20 left-6 z-10" />
+
       </div>
     </>
   );

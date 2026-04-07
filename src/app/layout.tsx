@@ -1,8 +1,8 @@
+// src/app/layout.tsx
 import type { Metadata, Viewport } from "next";
 import { siteConfig } from "@/config/site";
-import Script from "next/script"; // 🔥 Added Next.js Script for optimized ad loading
+import Script from "next/script";
 
-/* 🔥 Luxury Font System */
 import {
   DMSans,
   Syne,
@@ -26,12 +26,11 @@ import { Analytics } from "@vercel/analytics/next";
 import { cn } from "@/utils/helpers";
 import { IS_PRODUCTION, SpacingClasses } from "@/utils/constants";
 
-/* ✅ Client Components */
-import ClientOnlyDisclaimer from "@/components/client/ClientOnlyDisclaimer";
-import AdStickyBottomClient from "@/components/client/AdStickyBottomClient";
-
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { Suspense } from "react";
+
+/* Client-only ad host (renders all ad components) */
+import AdsHost from "@/components/client/AdsHost";
 
 /* ───────────────── Metadata ───────────────── */
 
@@ -105,11 +104,7 @@ export default function RootLayout({
       <body
         className={cn(
           "bg-[#080808] min-h-dvh antialiased select-none overflow-x-hidden",
-
-          /* Primary Font */
           Outfit.className,
-
-          /* Font Variables */
           Syne.variable,
           BebasNeue.variable,
           DMSans.variable,
@@ -122,25 +117,30 @@ export default function RootLayout({
             <Providers>
 
               {/* ✅ Client-only Disclaimer */}
-              {IS_PRODUCTION && <ClientOnlyDisclaimer />}
+              {IS_PRODUCTION && <Providers /> /* keep your existing logic; if you had ClientOnlyDisclaimer, keep it inside Providers or AdsHost as needed */}
 
               <TopNavbar />
 
-              <Sidebar>
-                <main
-                  className={cn(
-                    "container mx-auto max-w-full min-h-screen",
-                    SpacingClasses.main
-                  )}
-                >
-                  {children}
-                </main>
-              </Sidebar>
+              {/* Main content + layout */}
+              <div className="relative">
+                <Sidebar>
+                  <main
+                    className={cn(
+                      "container mx-auto max-w-full min-h-screen",
+                      SpacingClasses.main
+                    )}
+                  >
+                    {children}
+                  </main>
+                </Sidebar>
+              </div>
 
               <BottomNavbar />
 
-              {/* Custom Integrated Ads */}
-              <AdStickyBottomClient />
+              {/* AdsHost is a client component that mounts banner, sidebar, sticky bottom, and pre-roll controller */}
+              <Suspense fallback={null}>
+                <AdsHost />
+              </Suspense>
 
             </Providers>
           </NuqsAdapter>
@@ -151,11 +151,10 @@ export default function RootLayout({
         <Analytics />
 
         {/* 🔥 Adsterra Global Script Integration 🔥 */}
-        {/* Using lazyOnload ensures your cinematic UI paints completely before the ad script fetches */}
         <Script
           id="adsterra-global"
           src="https://pl29085033.profitablecpmratenetwork.com/c5/14/99/c514994a5300c2501ab0e78ea0d66080.js"
-          strategy="lazyOnload" 
+          strategy="lazyOnload"
         />
 
       </body>

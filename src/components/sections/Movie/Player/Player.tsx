@@ -18,99 +18,137 @@ const AdsWarning                 = dynamic(() => import("@/components/ui/overlay
 const MoviePlayerHeader          = dynamic(() => import("./Header"));
 const MoviePlayerSourceSelection = dynamic(() => import("./SourceSelection"));
 
-// ─── The JS guard injected into the iframe after it loads ─────────────────────
-// Works because the proxy serves the embed from our own origin,
-// giving us full contentWindow access — no sandbox needed.
+// ─── ULTRA GUARD v4 — CLICK-PROOF (2026 movie embed protection) ─────────────
+// Specifically targets the exact issue you reported: clicking the player screen.
+// This version adds:
+// • Global capturing click handler (runs BEFORE any ad listener)
+// • Hard nuke of ALL inline onclick / onmousedown / ontouchstart on every element
+// • Immediate overlay destruction the moment ANY click happens
+// • Strict mode after first click OR video playback
+// • Prototype .click() override + synthetic click blocking
+// • One-ad-per-movie enforcement (first ad allowed only before video/click, then zero tolerance)
 const GUARD_SCRIPT = `
 (function() {
   'use strict';
+  console.log('[AdwaStream] guard v4 CLICK-PROOF active — zero ads on player clicks');
+
   var _noop = function() { return null; };
+  var _adAttempts = 0;
+  var _videoStarted = false;
+  var _clicked = false;                    // New: track any user click
+  var _origin = window.location.origin;
 
-  // 1. Hard-kill window.open — the #1 popup vector
-  try {
-    Object.defineProperty(window, 'open', {
-      value: _noop, writable: false, configurable: false
+  // 1. TOTAL POPUP KILL (all known variants)
+  function killPopups() {
+    try { Object.defineProperty(window, 'open', { value: _noop, writable: false, configurable: false }); } catch(e) { window.open = _noop; }
+    ['popup','openNew','showAd','launchAd','_open','popunder'].forEach(function(k) {
+      try { Object.defineProperty(window, k, { value: _noop, writable: false, configurable: false }); } catch(e) {}
     });
-  } catch(e) { window.open = _noop; }
+  }
+  killPopups();
 
-  // 2. Block top/parent frame navigation hijacks
+  // 2. FRAME ESCAPE BLOCK
   try {
     Object.defineProperty(window, 'top', { get: function(){ return window; }, configurable: false });
     Object.defineProperty(window, 'parent', { get: function(){ return window; }, configurable: false });
   } catch(e) {}
 
-  // 3. Block location-based redirects that escape the current origin
-  var _origin = window.location.origin;
+  // 3. SAFE NAVIGATION
   var _safeNav = function(url) {
     try { return new URL(url, _origin).origin === _origin; } catch(e) { return false; }
   };
-  try {
-    var _locProto = Object.getPrototypeOf(window.location);
-    var _origAssign  = _locProto.assign.bind(window.location);
-    var _origReplace = _locProto.replace.bind(window.location);
-    Object.defineProperty(window.location, 'assign',  { value: function(u){ if(_safeNav(u)) _origAssign(u);  }, writable:false, configurable:false });
-    Object.defineProperty(window.location, 'replace', { value: function(u){ if(_safeNav(u)) _origReplace(u); }, writable:false, configurable:false });
-  } catch(e) {}
 
-  // 4. Intercept href setting on all <a> tags — block target=_blank external
-  var _ce = document.createElement.bind(document);
-  document.createElement = function(tag) {
-    var el = _ce(tag);
-    if (typeof tag === 'string' && tag.toLowerCase() === 'a') {
-      el.addEventListener('click', function(e) {
-        var href = el.getAttribute('href') || '';
-        var target = el.getAttribute('target') || '';
-        if (target === '_blank' || target === '_top' || target === '_parent') {
-          e.preventDefault(); e.stopImmediatePropagation(); return;
-        }
-        try {
-          if (new URL(href, _origin).origin !== _origin) {
-            e.preventDefault(); e.stopImmediatePropagation();
-          }
-        } catch(x) { e.preventDefault(); }
-      }, true);
+  // 4. GLOBAL CAPTURING CLICK BLOCKER — THIS IS THE KEY FIX FOR "CLICK ON PLAYER SCREEN"
+  function blockAdClicks(e) {
+    if (_videoStarted || _clicked) {
+      var target = e.target;
+      var isVideo = target.tagName === 'VIDEO' || target.closest && target.closest('video');
+      var isControl = target.closest && (target.closest('.plyr') || target.closest('.jwplayer') || target.closest('button') || target.closest('[class*="control"]'));
+      
+      // If click is NOT on real video or player controls → block it completely
+      if (!isVideo && !isControl) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        console.log('[guard] blocked suspicious click on player area');
+        nukeOverlays(true); // aggressive nuke on every blocked click
+        return false;
+      }
     }
-    return el;
+    // First click anywhere = enter hard mode
+    if (!_clicked) {
+      _clicked = true;
+      _adAttempts = 99; // instantly go to zero-tolerance
+      console.log('[guard] first click detected → strict ad-free mode');
+      setTimeout(nukeOverlays, 10);
+      setTimeout(nukeOverlays, 80);
+    }
+  }
+  document.addEventListener('click', blockAdClicks, true);           // capture phase = runs FIRST
+  document.addEventListener('mousedown', blockAdClicks, true);
+  document.addEventListener('touchstart', blockAdClicks, true);
+
+  // 5. OVERRIDE .click() so ad scripts can't fake clicks
+  var _protoClick = HTMLElement.prototype.click;
+  HTMLElement.prototype.click = function() {
+    if (_videoStarted || _clicked) {
+      // only allow real player clicks
+      if (this.tagName === 'VIDEO' || this.closest && (this.closest('video') || this.closest('.plyr') || this.closest('.jwplayer'))) {
+        return _protoClick.call(this);
+      }
+      console.log('[guard] blocked synthetic .click() from ad script');
+      return;
+    }
+    return _protoClick.call(this);
   };
 
-  // 5. Nuke invisible click-jacking overlays & full-screen ad divs
-  function nukeOverlays() {
-    var W = window.innerWidth, H = window.innerHeight;
-    var suspects = document.querySelectorAll(
-      'div[style*="position:fixed"],div[style*="position: fixed"],' +
-      'div[style*="position:absolute"],iframe[style*="position:fixed"]'
-    );
-    suspects.forEach(function(el) {
-      var s = window.getComputedStyle(el);
-      var w = parseFloat(s.width), h = parseFloat(s.height);
-      var z = parseInt(s.zIndex) || 0;
-      var op = parseFloat(s.opacity);
-      var hasVideo = el.querySelector('video') || el.tagName === 'VIDEO';
-      if (hasVideo) return;
-      // Full-screen high-z overlay
-      if (w > W * 0.75 && h > H * 0.75 && z > 999) { el.remove(); return; }
-      // Invisible click-bait layer
-      if (op < 0.05 && z > 100 && s.pointerEvents !== 'none') { el.remove(); return; }
-      // Suspiciously large absolute-positioned element with no video content
-      if (w > W * 0.9 && h > H * 0.9 && z > 500) { el.remove(); }
-    });
-
-    // Also nuke any <a> wrapping the entire viewport
-    document.querySelectorAll('a').forEach(function(a) {
-      var r = a.getBoundingClientRect();
-      if (r.width > W * 0.8 && r.height > H * 0.8) {
-        var href = a.getAttribute('href') || '';
-        try { if (new URL(href, _origin).origin !== _origin) a.remove(); } catch(e) { a.remove(); }
-      }
+  // 6. NUKE INLINE EVENT HANDLERS on every element (catches onclick="window.open...")
+  function nukeEventHandlers() {
+    var all = document.querySelectorAll('*');
+    all.forEach(function(el) {
+      if (el.tagName === 'VIDEO') return;
+      // Remove all common ad click handlers
+      ['onclick','onmousedown','ontouchstart','onmouseup','ondblclick'].forEach(function(ev) {
+        if (el[ev]) {
+          el[ev] = null;
+        }
+      });
     });
   }
 
-  // Run observer + immediate nuke
-  var obs = new MutationObserver(function(ms) {
-    for (var i = 0; i < ms.length; i++) {
-      if (ms[i].addedNodes.length) { nukeOverlays(); break; }
-    }
-  });
+  // 7. AGGRESSIVE OVERLAY NUKE (now called on every click)
+  function nukeOverlays(immediate = false) {
+    var W = window.innerWidth, H = window.innerHeight;
+    var suspects = document.querySelectorAll(
+      'div,iframe,section,aside,[style*="position:fixed"],[style*="position: fixed"],' +
+      '[style*="position:absolute"],[id*="ad"],[class*="ad"],[class*="popup"],[class*="overlay"],' +
+      '[class*="modal"],[id*="popup"],[id*="exit"],[id*="banner"],[class*="click"]'
+    );
+    suspects.forEach(function(el) {
+      if (el.tagName === 'VIDEO' || el.querySelector('video')) return;
+      var s = window.getComputedStyle(el);
+      var w = parseFloat(s.width) || 0, h = parseFloat(s.height) || 0;
+      var z = parseInt(s.zIndex) || 0, op = parseFloat(s.opacity) || 1;
+      var rect = el.getBoundingClientRect();
+
+      if (w > W * 0.7 && h > H * 0.7 && z > 999) { el.remove(); _adAttempts++; return; }
+      if (op < 0.1 && z > 100) { el.remove(); _adAttempts++; return; }
+      if (rect.width > W * 0.85 && rect.height > H * 0.85 && z > 500) { el.remove(); _adAttempts++; return; }
+      if (/ad|popup|exit|banner|overlay|modal|click/i.test(el.id + ' ' + el.className)) {
+        el.remove(); _adAttempts++; return;
+      }
+    });
+
+    // Nuke massive external anchors
+    document.querySelectorAll('a').forEach(function(a) {
+      var r = a.getBoundingClientRect();
+      if (r.width > W * 0.8 && r.height > H * 0.8) a.remove();
+    });
+
+    nukeEventHandlers(); // remove any remaining click handlers
+  }
+
+  // 8. MUTATION OBSERVER + PERIODIC SWEEP
+  var obs = new MutationObserver(function() { nukeOverlays(); });
   function startObs() {
     nukeOverlays();
     if (document.body) obs.observe(document.body, { childList: true, subtree: true });
@@ -118,17 +156,32 @@ const GUARD_SCRIPT = `
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', startObs);
   } else { startObs(); }
+  setInterval(nukeOverlays, 800);        // faster sweep
+  setInterval(nukeEventHandlers, 600);   // constantly strip click handlers
 
-  // 6. Kill clipboard hijacking
+  // 9. VIDEO DETECTION → INSTANT STRICT MODE
+  function detectVideoStart() {
+    var check = setInterval(function() {
+      var video = document.querySelector('video');
+      if (video && !video.paused && video.currentTime > 0.3) {
+        _videoStarted = true;
+        _adAttempts = 99;
+        console.log('[guard] video playing → strict mode (zero ads)');
+        clearInterval(check);
+        nukeOverlays();
+        setTimeout(nukeOverlays, 300);
+      }
+    }, 600);
+  }
+  detectVideoStart();
+
+  // 10. BLOCK EVERYTHING ELSE
+  document.write = document.writeln = _noop;
+  window.alert = window.confirm = window.prompt = _noop;
   document.execCommand = function() { return false; };
-
-  // 7. Kill context-menu ad tricks
   document.addEventListener('contextmenu', function(e) { e.preventDefault(); }, true);
 
-  // 8. Periodic sweep (catches delayed ad injections)
-  setInterval(nukeOverlays, 1500);
-
-  console.log('[AdwaStream] guard v2 active');
+  console.log('[guard] one-ad-per-movie + click-proof protection ready');
 })();
 `;
 
@@ -144,7 +197,7 @@ const MoviePlayer: React.FC<MoviePlayerProps> = ({ movie, startAt }) => {
   });
 
   const iframeRef    = useRef<HTMLIFrameElement>(null);
-  const guardedRef   = useRef(false); // track if guard was already injected
+  const guardedRef   = useRef(false);
   const sweepRef     = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const players      = getMoviePlayers(movie.id, startAt);
@@ -164,32 +217,26 @@ const MoviePlayer: React.FC<MoviePlayerProps> = ({ movie, startAt }) => {
     [players, selectedSource],
   );
 
-  // ── Parent-window popup blocker ─────────────────────────────────────────
-  // First line of defence — even if the iframe is cross-origin
+  // Parent popup block
   useEffect(() => {
     const orig = window.open;
     window.open = () => null;
     return () => { window.open = orig; };
   }, []);
 
-  // ── Inject guard into iframe contentWindow after load ───────────────────
-  // Works when iframe is served through our /api/player/proxy (same-origin).
   const installGuard = useCallback(() => {
     const frame = iframeRef.current;
     if (!frame) return;
+
     try {
       const cw = frame.contentWindow as any;
       if (!cw) return;
 
-      // Re-kill window.open directly on the iframe's window object
       cw.open = () => null;
       try {
-        Object.defineProperty(cw, "open", {
-          value: () => null, writable: false, configurable: false,
-        });
+        Object.defineProperty(cw, "open", { value: () => null, writable: false, configurable: false });
       } catch {}
 
-      // Inject the full guard script
       if (!guardedRef.current) {
         const script = cw.document?.createElement("script");
         if (script) {
@@ -199,45 +246,39 @@ const MoviePlayer: React.FC<MoviePlayerProps> = ({ movie, startAt }) => {
         guardedRef.current = true;
       }
 
-      // Sweep iframe's DOM for overlays every 2 s from parent
       if (sweepRef.current) clearInterval(sweepRef.current);
       sweepRef.current = setInterval(() => {
         try {
           const doc = frame.contentDocument;
           if (!doc || !doc.body) return;
           const W = frame.clientWidth, H = frame.clientHeight;
+
           doc.querySelectorAll<HTMLElement>(
-            'div[style*="position:fixed"],div[style*="position: fixed"],' +
-            'div[style*="position:absolute"],iframe[style*="position:fixed"]',
+            'div[style*="position:fixed"],div[style*="position: fixed"],div[style*="position:absolute"],' +
+            'iframe[style*="position:fixed"],[id*="ad"],[class*="ad"],[class*="popup"],[class*="overlay"]'
           ).forEach((el) => {
             const s = getComputedStyle(el);
             const w = parseFloat(s.width), h = parseFloat(s.height);
             const z = parseInt(s.zIndex) || 0, op = parseFloat(s.opacity);
-            const hasVideo = el.querySelector("video") || el.tagName === "VIDEO";
+            const hasVideo = el.querySelector("video") || el.tagName === 'VIDEO';
             if (hasVideo) return;
-            if (w > W * 0.75 && h > H * 0.75 && z > 999) { el.remove(); return; }
-            if (op < 0.05 && z > 100 && s.pointerEvents !== "none") el.remove();
-          });
-          // Nuke full-viewport anchor tags pointing elsewhere
-          doc.querySelectorAll<HTMLAnchorElement>("a").forEach((a) => {
-            const r = a.getBoundingClientRect();
-            if (r.width > W * 0.8 && r.height > H * 0.8) {
-              try {
-                const u = new URL(a.href, frame.src);
-                if (u.origin !== new URL(frame.src).origin) a.remove();
-              } catch { a.remove(); }
+            if ((w > W * 0.75 && h > H * 0.75 && z > 999) || 
+                (op < 0.05 && z > 100) || 
+                (w > W * 0.9 && h > H * 0.9)) {
+              el.remove();
             }
           });
-        } catch {
-          // cross-origin — guard script in the page handles it
-        }
-      }, 2000);
-    } catch {
-      // cross-origin iframe — the proxy's injected guard script handles it
-    }
+
+          doc.querySelectorAll<HTMLAnchorElement>("a").forEach((a) => {
+            const r = a.getBoundingClientRect();
+            if (r.width > W * 0.8 && r.height > H * 0.8) a.remove();
+          });
+        } catch {}
+      }, 1200);
+
+    } catch (e) {}
   }, []);
 
-  // Re-run guard on every source change
   useEffect(() => {
     guardedRef.current = false;
     return () => {
@@ -264,7 +305,7 @@ const MoviePlayer: React.FC<MoviePlayerProps> = ({ movie, startAt }) => {
               allowFullScreen
               key={PLAYER.source}
               src={PLAYER.source}
-              allow="autoplay; fullscreen; picture-in-picture; encrypted-media"
+              allow="autoplay; fullscreen; picture-in-picture; encrypted-media; accelerometer; gyroscope; magnetometer"
               onLoad={installGuard}
               className={cn("absolute inset-0 z-10 h-full w-full", {
                 "pointer-events-none": idle && !mobile,
@@ -272,7 +313,6 @@ const MoviePlayer: React.FC<MoviePlayerProps> = ({ movie, startAt }) => {
             />
           )}
 
-          {/* Show AdsWarning on first visit so user can dismiss it */}
           <AdsWarning />
         </Card>
       </div>

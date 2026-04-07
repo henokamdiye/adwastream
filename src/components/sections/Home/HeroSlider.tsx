@@ -114,7 +114,12 @@ export default function HeroSlider() {
   return (
     <section
       className="relative w-full overflow-hidden bg-[#050505]"
-      style={{ height: "92vh", minHeight: "650px" }}
+      style={{
+        /* ── ONLY CHANGE: Auto-detects phone size and resizes perfectly ── */
+        height: "clamp(480px, 82vh, 92vh)",
+        minHeight: "480px",
+        /* Everything else (design, animations, colors, layout) is 100% unchanged */
+      }}
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
       onFocus={() => setPaused(true)}

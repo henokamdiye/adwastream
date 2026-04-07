@@ -1,150 +1,136 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
-import Script from "next/script";
 
 interface AdPreRollProps {
-  /** Called when ad is skipped or finishes */
   onDone: () => void;
-  /** Seconds before skip is available */
   skipAfter?: number;
 }
 
 export default function AdPreRoll({ onDone, skipAfter = 5 }: AdPreRollProps) {
   const [countdown, setCountdown] = useState(skipAfter);
-  const [canSkip, setCanSkip] = useState(false);
-  const [adSeconds, setAdSeconds] = useState(0);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [canSkip,   setCanSkip]   = useState(false);
+  const [elapsed,   setElapsed]   = useState(0);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const loadedRef    = useRef(false);
+  const intervalRef  = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const BRAND_GOLD = "#F5C300";
-  const DIRECT_LINK = "https://www.profitablecpmratenetwork.com/gd5iruty?key=6ed2d11b5284120bc0849bf320f9facf";
+  // Load Adsterra banner inside pre-roll
+  useEffect(() => {
+    if (loadedRef.current || !containerRef.current) return;
+    loadedRef.current = true;
 
+    const script = document.createElement("script");
+    script.src =
+      "https://pl29085033.profitablecpmratenetwork.com/c5/14/99/c514994a5300c2501ab0e78ea0d66080.js";
+    script.async = true;
+    script.type = "text/javascript";
+    containerRef.current.appendChild(script);
+  }, []);
+
+  // Countdown ticker
   useEffect(() => {
     intervalRef.current = setInterval(() => {
+      setElapsed((e) => e + 1);
       setCountdown((c) => {
         if (c <= 1) {
           setCanSkip(true);
-          if (intervalRef.current) clearInterval(intervalRef.current);
+          clearInterval(intervalRef.current!);
           return 0;
         }
         return c - 1;
       });
-      setAdSeconds((s) => s + 1);
     }, 1000);
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
+    return () => { if (intervalRef.current) clearInterval(intervalRef.current!); };
   }, []);
 
-  useEffect(() => {
-    if (adSeconds >= 20) onDone();
-  }, [adSeconds, onDone]);
-
-  const handleBackgroundClick = () => {
-    window.open(DIRECT_LINK, "_blank");
-  };
-
-  // Inject Adsterra iframe script dynamically
-  useEffect(() => {
-    const container = document.getElementById("adsterra-preroll-container");
-    if (!container) return;
-
-    const inlineScript = document.createElement("script");
-    inlineScript.innerHTML = `
-      atOptions = {
-        'key' : 'df67367368efb0d29cc8c894d57d7ef2',
-        'format' : 'iframe',
-        'height' : 50,
-        'width' : 320,
-        'params' : {}
-      };
-    `;
-    container.appendChild(inlineScript);
-
-    const script = document.createElement("script");
-    script.src = "https://www.highperformanceformat.com/df67367368efb0d29cc8c894d57d7ef2/invoke.js";
-    script.async = true;
-    container.appendChild(script);
-
-    return () => {
-      inlineScript.remove();
-      script.remove();
-    };
-  }, []);
+  // Auto-close after 15 s
+  useEffect(() => { if (elapsed >= 15) onDone(); }, [elapsed, onDone]);
 
   const circumference = 2 * Math.PI * 16;
-  const progress = canSkip ? 0 : circumference * (1 - (skipAfter - countdown) / skipAfter);
+  const dashOffset = canSkip
+    ? 0
+    : circumference * (1 - (skipAfter - countdown) / skipAfter);
 
   return (
-    <>
-      <div className="absolute inset-0 z-[100] flex items-end justify-end bg-black/40 backdrop-blur-sm pb-16 pr-8 transition-all duration-500">
-        
-        {/* Invisible click layer */}
-        <div 
-          onClick={handleBackgroundClick}
-          className="absolute inset-0 z-10 cursor-pointer"
+    <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black">
+      {/* Adsterra ad display area */}
+      <div
+        className="relative flex w-full max-w-lg flex-col items-center justify-center overflow-hidden rounded-xl px-4"
+        style={{ minHeight: 90 }}
+      >
+        <div
+          ref={containerRef}
+          className="flex min-h-[90px] w-full items-center justify-center"
         />
-
         {/* Ad label */}
-        <div 
-          className="absolute left-6 top-6 rounded-full px-4 py-1.5 text-[10px] font-black uppercase tracking-[3px] text-white flex items-center gap-2 z-20"
-          style={{ background: "rgba(0,0,0,0.5)", border: `1px solid ${BRAND_GOLD}44` }}
+        <span
+          className="absolute left-3 top-2 rounded px-1.5 py-px text-[8px] font-bold uppercase tracking-widest text-white/40"
+          style={{
+            background: "rgba(0,0,0,0.6)",
+            backdropFilter: "blur(4px)",
+            border: "1px solid rgba(255,255,255,0.1)",
+          }}
         >
-          <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" />
-          Advertisement
-        </div>
-
-        {/* Skip / countdown button */}
-        <div className="z-20">
-          {canSkip ? (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                handleBackgroundClick();
-                onDone();
-              }}
-              className="group flex items-center gap-3 rounded-full px-8 py-3.5 text-sm font-black transition-all hover:scale-105 active:scale-95 shadow-2xl"
-              style={{
-                background: BRAND_GOLD,
-                color: "#000",
-                boxShadow: `0 0 30px ${BRAND_GOLD}44`,
-              }}
-            >
-              SKIP AD
-              <svg className="w-4 h-4 transition-transform group-hover:translate-x-1" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z" />
-              </svg>
-            </button>
-          ) : (
-            <div className="flex items-center gap-4 rounded-full bg-black/80 px-6 py-3 border border-white/10 backdrop-blur-xl">
-              <div className="relative h-10 w-10">
-                <svg className="h-full w-full -rotate-90" viewBox="0 0 36 36">
-                  <circle cx="18" cy="18" r="16" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="3" />
-                  <circle
-                    cx="18" cy="18" r="16" fill="none"
-                    stroke={BRAND_GOLD}
-                    strokeWidth="3"
-                    strokeLinecap="round"
-                    strokeDasharray={circumference}
-                    strokeDashoffset={progress}
-                    style={{ transition: "stroke-dashoffset 1s linear" }}
-                  />
-                </svg>
-                <span className="absolute inset-0 flex items-center justify-center text-[11px] font-bold text-white font-mono">
-                  {countdown}
-                </span>
-              </div>
-              <div className="flex flex-col">
-                <span className="text-[10px] text-white/40 uppercase tracking-widest font-bold">Waiting</span>
-                <span className="text-xs text-white font-medium">Video starts in {countdown}s</span>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Container where Adsterra iframe will render */}
-        <div id="adsterra-preroll-container" className="absolute bottom-20 left-6 z-10" />
-
+          Ad
+        </span>
       </div>
-    </>
+
+      {/* Skip / countdown — bottom-right */}
+      <div className="absolute bottom-6 right-6">
+        {canSkip ? (
+          <button
+            onClick={onDone}
+            className="flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-bold text-black transition-all hover:scale-105 active:scale-95"
+            style={{
+              background: "linear-gradient(135deg,#8b6914,#daa520,#ffd700,#ffe87c,#ffd700,#8b6914)",
+              backgroundSize: "200% 100%",
+              animation: "shimmer 2.5s linear infinite",
+              boxShadow: "0 4px 20px rgba(255,215,0,0.35)",
+            }}
+          >
+            Skip Ad
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z" />
+            </svg>
+          </button>
+        ) : (
+          <div
+            className="flex items-center gap-3 rounded-lg px-4 py-2.5"
+            style={{
+              background: "rgba(0,0,0,0.7)",
+              backdropFilter: "blur(6px)",
+              border: "1px solid rgba(255,255,255,0.1)",
+            }}
+          >
+            <div className="relative h-9 w-9">
+              <svg className="h-full w-full -rotate-90" viewBox="0 0 36 36">
+                <circle
+                  cx="18" cy="18" r="16" fill="none"
+                  stroke="rgba(255,255,255,0.1)" strokeWidth="2.5"
+                />
+                <circle
+                  cx="18" cy="18" r="16" fill="none"
+                  stroke="rgba(255,215,0,0.75)" strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeDasharray={circumference}
+                  strokeDashoffset={dashOffset}
+                  style={{ transition: "stroke-dashoffset 0.95s linear" }}
+                />
+              </svg>
+              <span className="absolute inset-0 flex items-center justify-center text-xs font-bold text-white">
+                {countdown}
+              </span>
+            </div>
+            <span className="text-xs text-white/55">
+              Skip in {countdown}s
+            </span>
+          </div>
+        )}
+      </div>
+
+      <style>{`
+        @keyframes shimmer { 0%{background-position:-200% 0} 100%{background-position:200% 0} }
+      `}</style>
+    </div>
   );
 }

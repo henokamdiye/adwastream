@@ -286,6 +286,27 @@ const TvShowPlayer: React.FC<TvShowPlayerProps> = ({
     } catch (e) {}
   }, []);
 
+  // ── SMART MOBILE + AUTO-ROTATE SUPPORT (exactly like MoviePlayer) ─────
+  // Uses 100dvh so it perfectly fits phones in BOTH portrait and landscape.
+  // Automatically re-adapts when you rotate the phone.
+  useEffect(() => {
+    const handleRotate = () => {
+      if (iframeRef.current) {
+        guardedRef.current = false;   // allow fresh guard injection
+        installGuard();
+      }
+    };
+
+    window.addEventListener("resize", handleRotate);
+    window.addEventListener("orientationchange", handleRotate);
+
+    return () => {
+      window.removeEventListener("resize", handleRotate);
+      window.removeEventListener("orientationchange", handleRotate);
+    };
+  }, [installGuard]);
+
+  // Reset guard when source changes
   useEffect(() => {
     guardedRef.current = false;
     return () => {
@@ -306,7 +327,12 @@ const TvShowPlayer: React.FC<TvShowPlayerProps> = ({
           {...props}
         />
 
-        <Card shadow="md" radius="none" className="relative h-screen overflow-hidden bg-black">
+        {/* ── PERFECT MOBILE + ROTATION COMPATIBLE CARD ── */}
+        <Card 
+          shadow="md" 
+          radius="none" 
+          className="relative h-[100dvh] overflow-hidden bg-black"   // ← changed to 100dvh
+        >
           <Skeleton className="absolute h-full w-full" />
 
           {seen && (

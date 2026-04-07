@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { siteConfig } from "@/config/site";
+import Script from "next/script"; // 🔥 Added Next.js Script for optimized ad loading
 
 /* 🔥 Luxury Font System */
 import {
@@ -138,7 +139,7 @@ export default function RootLayout({
 
               <BottomNavbar />
 
-              {/* Ads */}
+              {/* Custom Integrated Ads */}
               <AdStickyBottomClient />
 
             </Providers>
@@ -148,6 +149,14 @@ export default function RootLayout({
         {/* Performance */}
         <SpeedInsights />
         <Analytics />
+
+        {/* 🔥 Adsterra Global Script Integration 🔥 */}
+        {/* Using lazyOnload ensures your cinematic UI paints completely before the ad script fetches */}
+        <Script
+          id="adsterra-global"
+          src="https://pl29085033.profitablecpmratenetwork.com/c5/14/99/c514994a5300c2501ab0e78ea0d66080.js"
+          strategy="lazyOnload" 
+        />
 
       </body>
     </html>
